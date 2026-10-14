@@ -1,0 +1,783 @@
+{
+  "datasets": [
+    {
+      "name": "5395382b",
+      "displayName": "agg_daily_store_sales",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.agg_daily_store_sales",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fa539b01",
+      "displayName": "dim_customers",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.dim_customers"
+      }
+    },
+    {
+      "name": "5e84b52f",
+      "displayName": "dim_date",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.dim_date",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "befc1ee1",
+      "displayName": "dim_product",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.dim_product",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "78caaef6",
+      "displayName": "dim_store",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.dim_store"
+      }
+    },
+    {
+      "name": "95d67a46",
+      "displayName": "fact_order_line",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.fact_order_line"
+      }
+    },
+    {
+      "name": "ba95943f",
+      "displayName": "fact_orders",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.fact_orders"
+      }
+    },
+    {
+      "name": "69a3e0d6",
+      "displayName": "v_kpi_summary",
+      "config": {
+        "version": "1.1",
+        "source": "fk_ce_2026_07_1382.gold.v_kpi_summary",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "top_products",
+      "displayName": "Top 10 Products by Net Revenue",
+      "queryLines": [
+        "SELECT\n",
+        "  p.product_name AS product_name,\n",
+        "  SUM(f.net_amount) AS net_item_revenue\n",
+        "FROM\n",
+        "  fk_ce_2026_07_1382.gold.fact_order_line f\n",
+        "    JOIN fk_ce_2026_07_1382.gold.dim_product p\n",
+        "      ON f.product_id = p.product_id\n",
+        "    JOIN fk_ce_2026_07_1382.gold.dim_store s\n",
+        "      ON f.store_id = s.store_id\n",
+        "    JOIN fk_ce_2026_07_1382.gold.dim_date d\n",
+        "      ON f.order_date_key = d.date_key\n",
+        "WHERE\n",
+        "  f.order_status = 'DELIVERED'\n",
+        "  AND (\n",
+        "    :city IS NULL\n",
+        "    OR size(:city) = 0\n",
+        "    OR array_contains(:city, s.city)\n",
+        "  )\n",
+        "  AND (\n",
+        "    :order_date_range.min IS NULL\n",
+        "    OR d.calendar_date >= :order_date_range.min\n",
+        "  )\n",
+        "  AND (\n",
+        "    :order_date_range.max IS NULL\n",
+        "    OR d.calendar_date <= :order_date_range.max\n",
+        "  )\n",
+        "GROUP BY\n",
+        "  p.product_name\n",
+        "ORDER BY\n",
+        "  net_item_revenue DESC\n",
+        "LIMIT 10"
+      ],
+      "parameters": [
+        {
+          "displayName": "City",
+          "keyword": "city",
+          "dataType": "STRING",
+          "complexType": "MULTI",
+          "defaultSelection": {}
+        },
+        {
+          "displayName": "Order Date Range",
+          "keyword": "order_date_range",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {}
+        }
+      ]
+    },
+    {
+      "name": "ops_metrics",
+      "displayName": "FreshKart Operations Metrics",
+      "config": {
+        "source": "fk_ce_2026_07_1382.gold.agg_daily_store_sales",
+        "measures": [
+          {
+            "name": "net_item_revenue",
+            "expr": "SUM(net_items_revenue)",
+            "displayName": "Net Item Revenue"
+          },
+          {
+            "name": "delivered_orders",
+            "expr": "SUM(delivered_orders)",
+            "displayName": "Delivered Orders"
+          },
+          {
+            "name": "on_time_orders",
+            "expr": "SUM(on_time_orders)",
+            "displayName": "On-Time Orders"
+          },
+          {
+            "name": "avg_order_value",
+            "expr": "SUM(net_items_revenue) / NULLIF(SUM(delivered_orders), 0)",
+            "displayName": "Average Order Value"
+          },
+          {
+            "name": "on_time_rate_pct",
+            "expr": "SUM(on_time_orders) / NULLIF(SUM(delivered_orders), 0)",
+            "displayName": "On-Time Rate %"
+          }
+        ],
+        "version": "1.1",
+        "dimensions": [
+          {
+            "expr": "source.* EXCEPT (delivered_orders, on_time_orders, on_time_rate_pct, net_items_revenue, gross_amount, discount_amount, delivery_fee_revenue, units_sold, cancelled_orders)"
+          },
+          {
+            "name": "store_name",
+            "expr": "store.store_name",
+            "displayName": "Store Name"
+          }
+        ],
+        "joins": [
+          {
+            "name": "store",
+            "source": "fk_ce_2026_07_1382.gold.dim_store",
+            "on": "source.store_id = store.store_id"
+          }
+        ]
+      }
+    }
+  ],
+  "pages": [
+    {
+      "name": "f3b5a088",
+      "displayName": "Operations Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "top_products_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "top_products",
+                  "fields": [
+                    {
+                      "name": "product_name",
+                      "expression": "`product_name`"
+                    },
+                    {
+                      "name": "net_item_revenue",
+                      "expression": "`net_item_revenue`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 Products by Net Revenue"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "product_name"
+                  },
+                  {
+                    "fieldName": "net_item_revenue"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_net_revenue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(net_item_revenue)",
+                      "expression": "MEASURE(`net_item_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Net Item Revenue"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(net_item_revenue)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_delivered_orders",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(delivered_orders)",
+                      "expression": "MEASURE(`delivered_orders`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Delivered Orders"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(delivered_orders)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_aov",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(avg_order_value)",
+                      "expression": "MEASURE(`avg_order_value`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Average Order Value"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_order_value)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "counter_on_time_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(on_time_rate_pct)",
+                      "expression": "MEASURE(`on_time_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "On-Time Rate %"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(on_time_rate_pct)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 0,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "daily_revenue_line",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "daily(order_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `order_date`)"
+                    },
+                    {
+                      "name": "measure(net_item_revenue)",
+                      "expression": "MEASURE(`net_item_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Daily Net Item Revenue"
+              },
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(order_date)",
+                  "displayName": "Day",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(net_item_revenue)",
+                  "displayName": "net_item_revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "revenue_by_city_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    },
+                    {
+                      "name": "measure(net_item_revenue)",
+                      "expression": "MEASURE(`net_item_revenue`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Net Item Revenue by City"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "city",
+                  "displayName": "city",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(net_item_revenue)",
+                  "displayName": "net_item_revenue",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "city",
+                  "displayName": "city",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "on_time_by_store_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "store_name",
+                      "expression": "`store_name`"
+                    },
+                    {
+                      "name": "measure(on_time_rate_pct)",
+                      "expression": "MEASURE(`on_time_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "On-Time Rate % by Store"
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "store_name",
+                  "displayName": "store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(on_time_rate_pct)",
+                  "displayName": "on_time_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "store_name",
+                  "displayName": "store_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "city_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70ccc9d1ff39983875af4cef76d_city",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "city",
+                      "expression": "`city`"
+                    },
+                    {
+                      "name": "city_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70c4537131c998586e0fcf889c1_city",
+                "query": {
+                  "datasetName": "top_products",
+                  "parameters": [
+                    {
+                      "name": "city",
+                      "keyword": "city"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "City"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "city",
+                    "queryName": "dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70ccc9d1ff39983875af4cef76d_city"
+                  },
+                  {
+                    "parameterName": "city",
+                    "queryName": "parameter_dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70c4537131c998586e0fcf889c1_city"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "date_range_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70ccc9d1ff39983875af4cef76d_order_date",
+                "query": {
+                  "datasetName": "ops_metrics",
+                  "fields": [
+                    {
+                      "name": "order_date",
+                      "expression": "`order_date`"
+                    },
+                    {
+                      "name": "order_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70c4537131c998586e0fcf889c1_order_date_range",
+                "query": {
+                  "datasetName": "top_products",
+                  "parameters": [
+                    {
+                      "name": "order_date_range",
+                      "keyword": "order_date_range"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Order Date Range"
+              },
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "order_date",
+                    "queryName": "dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70ccc9d1ff39983875af4cef76d_order_date"
+                  },
+                  {
+                    "parameterName": "order_date_range",
+                    "queryName": "parameter_dashboards/01f1c70bc137139f8c58043b69a14c45/datasets/01f1c70c4537131c998586e0fcf889c1_order_date_range"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
